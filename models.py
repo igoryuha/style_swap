@@ -77,3 +77,56 @@ class NormalisedVGG(nn.Module):
         relu5_1 = self.net[31:](relu4_1)
         out = namedtuple('out', ['relu1_1', 'relu2_1', 'relu3_1', 'relu4_1','relu5_1'])
         return out(relu1_1, relu2_1, relu3_1, relu4_1, relu5_1)
+
+
+class Conv_InstanceNorm_ReLU(nn.Module):
+
+    def __init__(self, in_channels, out_channels):
+        super(Conv_InstanceNorm_ReLU, self).__init__()
+        self.pad = nn.ReflectionPad2d(1)
+        self.conv = nn.Conv2d(in_channels, out_channels, 3)
+        self.instance_norm = nn.InstanceNorm2d(out_channels)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.pad(x)
+        x = self.conv(x)
+        x = self.instance_norm(x)
+        x = self.relu(x)
+        return x
+
+
+class Conv(nn.Module):
+
+    def __init__(self, in_channels, out_channels):
+        super(Conv, self).__init__()
+        self.pad = nn.ReflectionPad2d(1)
+        self.conv = nn.Conv2d(in_channels, out_channels, 3)
+
+    def forward(self, x):
+        x = self.pad(x)
+        x = self.conv(x)
+        return x
+
+
+class Decoder(nn.Module):
+
+    def __init__(self):
+        super(Decoder, self).__init__()
+        self.conv_instance_norm_relu3_1 = Conv_InstanceNorm_ReLU(256, 128)
+        self.upsample3 = nn.Upsample(scale_factor=2)
+        self.conv_instance_norm_relu2_2 = Conv_InstanceNorm_ReLU(128, 128)
+        self.conv_instance_norm_relu2_1 = Conv_InstanceNorm_ReLU(128, 64)
+        self.upsample2 = nn.Upsample(scale_factor=2)
+        self.conv_instance_norm_relu1_2 = Conv_InstanceNorm_ReLU(64, 64)
+        self.conv1_1 = Conv(64, 3)
+
+    def forward(self, x):
+        x = self.conv_instance_norm_relu3_1(x)
+        x = self.upsample3(x)
+        x = self.conv_instance_norm_relu2_2(x)
+        x = self.conv_instance_norm_relu2_1(x)
+        x = self.upsample2(x)
+        x = self.conv_instance_norm_relu1_2(x)
+        x = self.conv1_1(x)
+        return x
