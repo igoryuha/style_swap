@@ -61,7 +61,7 @@ class NormalisedVGG(nn.Module):
         for p in self.parameters():
             p.requires_grad = False
 
-    def forward(self, x, target='relu5_1'):
+    def forward(self, x, target='relu3_1'):
         relu1_1 = self.net[:4](x)
         if target == 'relu1_1':
             return relu1_1
