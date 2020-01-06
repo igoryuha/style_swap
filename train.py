@@ -1,7 +1,8 @@
 import torch
 from torchvision import transforms
+import torch.utils.data as data
 from models import NormalisedVGG, Decoder
-from utils import Dataset
+from utils import Dataset, InfiniteSampler
 import argparse
 
 parser = argparse.ArgumentParser(description='Style Swap')
@@ -15,6 +16,7 @@ parser.add_argument('--crop-size', type=int, default=256)
 parser.add_argument('--target-layer', type=str, default='relu3_1', help='Target hidden layer')
 parser.add_argument('--batch-size', type=int, default=2)
 parser.add_argument('--gpu', type=str, default=0)
+parser.add_argument('--nThreads', type=int, default=4)
 parser.add_argument('--learning-rate', type=float, default=1e-3)
 parser.add_argument('--learning-rate-decay', type=float, default=1e-4)
 parser.add_argument('--tv', type=float, default=1e-6)
@@ -34,6 +36,20 @@ transform = transforms.Compose([
 
 content_dataset = Dataset(args.content_dir, transform)
 style_dataset = Dataset(args.style_dir, transform)
+
+content_data_loader = data.DataLoader(
+    content_dataset,
+    batch_size=args.batch_size,
+    num_workers=args.nThreads,
+    sampler=InfiniteSampler(content_dataset)
+)
+
+style_data_loader = data.DataLoader(
+    style_dataset,
+    batch_size=args.batch_size,
+    num_workers=args.nThreads,
+    sampler=InfiniteSampler(style_dataset)
+)
 
 encoder = NormalisedVGG()
 decoder = Decoder()
