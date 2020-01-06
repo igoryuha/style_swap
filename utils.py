@@ -45,3 +45,7 @@ class InfiniteSampler(data.sampler.Sampler):
 
     def __len__(self):
         return 2 ** 31
+
+
+def deprocess(tensor):
+    pass

@@ -50,3 +50,13 @@ def TVloss(img, tv_weight):
     h_variance = torch.sum(torch.pow(img[:, :, :-1, :] - img[:, :, 1:, :], 2))
     loss = tv_weight * (h_variance + w_variance)
     return loss
+
+
+def learning_rate_decay(optimizer, init_lr, global_step, decay_rate):
+
+    lr = init_lr / (1. + global_step * decay_rate)
+
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+    return lr
