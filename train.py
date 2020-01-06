@@ -121,7 +121,7 @@ for global_step in tqdm(range(args.max_iter)):
     loss_buf = momentum * loss.item() + (1 - momentum) * loss_buf
 
     if global_step % args.print_iter == 0:
-        tqdm.write('step: %s, lr: %f, loss: %f' % (global_step, lr, loss.item()))
+        tqdm.write('step: %s, lr: %f, loss: %f' % (global_step, lr, loss_buf))
 
     if global_step % args.model_save_iter == 0:
         pass
