@@ -75,48 +75,50 @@ decoder = Decoder().to(device)
 optimizer = torch.optim.Adam(decoder.parameters(), lr=args.learning_rate)
 
 criterion = nn.MSELoss()
+pix_criterion = torch.nn.L1Loss()
+
+loss_buf = 0
+momentum = 2 / (1 + 500)
 
 for global_step in tqdm(range(args.max_iter)):
 
-    c_batch = next(content_data_loader).to(device)
-    s_batch = next(style_data_loader).to(device)
+    inputs = torch.zeros(args.batch_size*2, 3, args.crop_size, args.crop_size)
+    inputs[:args.batch_size] = next(content_data_loader)
+    inputs[args.batch_size:] = next(style_data_loader)
+    inputs = inputs.to(device)
 
-    c_latent = encoder(c_batch, args.target_layer)
-    s_latent = encoder(s_batch, args.target_layer)
+    latent = encoder(inputs)
 
-    ss = []
-    for i in range(args.batch_size):
-        for j in range(args.batch_size):
-            c_latent_i = c_latent[i].unsqueeze(0)
-            s_latent_j = c_latent[j].unsqueeze(0)
-            ss.append(style_swap(c_latent_i, s_latent_j, 3))
+    _, c, h, w = latent.shape
+    # add more batch dimensions to account for style swaps
+    latent.resize_(args.batch_size*2 + args.batch_size**2, c, h, w)
 
-    ss = torch.cat(ss, 0)
+    add = 0
+    for c_i in range(args.batch_size):
+        for s_i in range(args.batch_size):
+            content = latent[c_i].unsqueeze(0)
+            style = latent[args.batch_size + s_i].unsqueeze(0)
+            latent[args.batch_size*2 + add] = style_swap(content, style, 3)
+            add += 1
 
-    reconstructed_ss = decoder(ss)
-    reconstructed_ss_latent = encoder(reconstructed_ss, args.target_layer)
+    reconstructed_inputs = decoder(latent)
 
-    loss = criterion(ss, reconstructed_ss_latent)
+    reconstructed_latent = encoder(reconstructed_inputs)
+    loss = criterion(reconstructed_latent, latent)
 
     if args.pixel_loss > 0:
-
-        reconstructed_c = decoder(c_latent)
-        reconstructed_s = decoder(s_latent)
-
-        c_pixel_loss = criterion(c_batch, reconstructed_c)
-        s_pixel_loss = criterion(s_batch, reconstructed_s)
-
-        loss += (c_pixel_loss + s_pixel_loss) * args.pixel_loss
+        loss += args.pixel_loss * pix_criterion(reconstructed_inputs[:args.batch_size*2], inputs)
 
     if args.tv > 0:
-
-        loss += TVloss(reconstructed_ss, args.tv)
+        loss += TVloss(reconstructed_inputs[:args.batch_size*2], args.tv)
 
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
 
     lr = learning_rate_decay(optimizer, args.learning_rate, global_step, args.learning_rate_decay)
+
+    loss_buf = momentum * loss.item() + (1 - momentum) * loss_buf
 
     if global_step % args.print_iter == 0:
         tqdm.write('step: %s, lr: %f, loss: %f' % (global_step, lr, loss.item()))
