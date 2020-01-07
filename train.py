@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision import transforms
 import torch.utils.data as data
 from models import NormalisedVGG, Decoder
-from utils import Dataset, InfiniteSampler
+from utils import Dataset, InfiniteSampler, forward_group_transform, eval_transform
 from ops import style_swap, TVloss, learning_rate_decay
 import argparse
 from tqdm import tqdm
@@ -23,11 +23,11 @@ parser.add_argument('--crop-size', type=int, default=256)
 parser.add_argument('--target-layer', type=str, default='relu3_1', help='Target hidden layer')
 parser.add_argument('--batch-size', type=int, default=2)
 parser.add_argument('--gpu', type=str, default=0)
-parser.add_argument('--nThreads', type=int, default=4)
+parser.add_argument('--nThreads', type=int, default=12)
 parser.add_argument('--learning-rate', type=float, default=1e-3)
 parser.add_argument('--learning-rate-decay', type=float, default=1e-4)
 parser.add_argument('--tv', type=float, default=1e-6)
-parser.add_argument('--pixel-loss', type=float, default=0)
+parser.add_argument('--pixel-loss', type=float, default=1)
 parser.add_argument('--model-save-iter', type=int, default=1000)
 parser.add_argument('--model-save-dir', type=str, default='./decoder')
 parser.add_argument('--test-iter', type=int, default=1000)
@@ -38,17 +38,9 @@ args = parser.parse_args()
 
 device = torch.device('cuda:%s' % args.gpu if torch.cuda.is_available() else 'cpu')
 
-if not os.path.exists(args.test_save_dir):
-    os.mkdir(args.test_save_dir)
-
 transform = transforms.Compose([
     transforms.Resize(args.image_size),
     transforms.RandomCrop(args.crop_size),
-    transforms.ToTensor()
-])
-
-test_transform = transforms.Compose([
-    transforms.Resize(args.image_size),
     transforms.ToTensor()
 ])
 
@@ -127,16 +119,5 @@ for global_step in tqdm(range(args.max_iter)):
         pass
 
     if global_step % args.test_iter == 0:
-        c_test_data = os.listdir(args.content_test_dir)
-        s_test_data = os.listdir(args.style_test_dir)
-        for i in range(len(c_test_data)):
-            c_test_img_path = os.path.join(args.content_test_dir, c_test_data[i])
-            s_test_img_path = os.path.join(args.style_test_dir, s_test_data[i])
-            c_test_img = test_transform(Image.open(c_test_img_path)).unsqueeze(0).to(device)
-            s_test_img = test_transform(Image.open(s_test_img_path)).unsqueeze(0).to(device)
-
-            c_test_latent = encoder(c_test_img)
-            s_test_latent = encoder(s_test_img)
-            ss = style_swap(c_test_latent, s_test_latent, 3)
-            reconstructed_ss = decoder(ss).squeeze(0)
-            transforms.ToPILImage()(reconstructed_ss).save('%s/%s_%s.jpg' % (args.test_save_dir, global_step, i))
+        forward_group_transform(encoder, decoder, args.content_test_dir, args.style_test_dir,
+                                args.image_size, device, style_swap, args.test_save_dir, 3, 3, global_step)
