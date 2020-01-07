@@ -116,7 +116,10 @@ for global_step in tqdm(range(args.max_iter)):
         tqdm.write('step: %s, lr: %f, loss: %f' % (global_step, lr, loss_buf))
 
     if global_step % args.model_save_iter == 0:
-        pass
+        if not os.path.exists(args.model_save_dir):
+            os.mkdir(args.model_save_dir)
+        model_save_path = '%s/decoder_step_%d_loss_%.4f' % (args.model_save_dir, global_step, loss_buf)
+        torch.save(decoder.state_dict(), model_save_path)
 
     if global_step % args.test_iter == 0:
         forward_group_transform(encoder, decoder, args.content_test_dir, args.style_test_dir,
