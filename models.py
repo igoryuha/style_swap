@@ -85,13 +85,13 @@ class Conv_InstanceNorm_ReLU(nn.Module):
         super(Conv_InstanceNorm_ReLU, self).__init__()
         self.pad = nn.ReflectionPad2d(1)
         self.conv = nn.Conv2d(in_channels, out_channels, 3)
-        self.instance_norm = nn.InstanceNorm2d(out_channels)
+        #self.instance_norm = nn.InstanceNorm2d(out_channels)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.pad(x)
         x = self.conv(x)
-        x = self.instance_norm(x)
+        #x = self.instance_norm(x)
         x = self.relu(x)
         return x
 

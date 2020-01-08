@@ -8,7 +8,7 @@ from ops import style_swap
 import argparse
 
 parser = argparse.ArgumentParser(description='Style Swap')
-parser.add_argument('--model-path', type=str, default='./decoder/decoder', help='path to decoder')
+parser.add_argument('--model-path', type=str, default='./decoder/decoder.5375', help='path to decoder')
 parser.add_argument('--content-path', type=str, required=True, help='path to content image')
 parser.add_argument('--style-path', type=str, required=True, help='path to style image')
 parser.add_argument('--save-path', type=str)
