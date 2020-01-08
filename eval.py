@@ -1,7 +1,4 @@
 import torch
-import torch.nn as nn
-from torchvision import transforms
-import torch.utils.data as data
 from models import NormalisedVGG, Decoder
 from utils import forward_transform
 from ops import style_swap
@@ -11,10 +8,10 @@ parser = argparse.ArgumentParser(description='Style Swap')
 parser.add_argument('--model-path', type=str, default='./decoder/decoder.5375', help='path to decoder')
 parser.add_argument('--content-path', type=str, required=True, help='path to content image')
 parser.add_argument('--style-path', type=str, required=True, help='path to style image')
-parser.add_argument('--save-path', type=str)
+parser.add_argument('--save-path', type=str, default='./result.jpg')
 parser.add_argument('--image-size', type=int, default=512)
-parser.add_argument('--patch-size', type=int, default=3)
-parser.add_argument('--stride', type=int, default=3)
+parser.add_argument('--patch-size', type=int, default=7)
+parser.add_argument('--stride', type=int, default=1)
 parser.add_argument('--gpu', type=str, default=0)
 
 args = parser.parse_args()
