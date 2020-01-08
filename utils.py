@@ -93,3 +93,24 @@ def forward_group_transform(encoder, decoder, content_dir, style_dir, image_size
             save_path = '%s/%s_kSize%s_Stride%s.jpg' % (save_dir, i, k_size, stride)
 
         reconstructed.save(save_path)
+
+
+def forward_transform(encoder, decoder, content_path, style_path, image_size,
+                      device, style_swap, save_path, k_size, stride):
+
+    transform = eval_transform(image_size)
+
+    content = transform(Image.open(content_path))
+    style = transform(Image.open(style_path))
+
+    content = content.unsqueeze(0).to(device)
+    style = style.unsqueeze(0).to(device)
+
+    c_latent = encoder(content)
+    s_latent = encoder(style)
+    ss = style_swap(c_latent, s_latent, k_size, stride)
+    reconstructed = decoder(ss)
+
+    reconstructed = deprocess(reconstructed)
+
+    reconstructed.save(save_path)
